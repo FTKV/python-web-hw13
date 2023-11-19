@@ -1,18 +1,18 @@
 from datetime import datetime, date
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, UUID4
 
 
 class ContactModel(BaseModel):
-    first_name: str = Field(min_length=2, max_length=150)
-    last_name: str = Field(min_length=2, max_length=150)
+    first_name: str = Field(min_length=2, max_length=254)
+    last_name: str = Field(min_length=2, max_length=254)
     email: EmailStr
-    phone: str = Field(max_length=30)
+    phone: str = Field(max_length=38)
     birthday: date
-    address: str = Field(max_length=150)
+    address: str = Field(max_length=254)
 
 
 class ContactResponse(ContactModel):
-    id: int = Field(ge=1)
+    id: UUID4
     created_at: datetime
     updated_at: datetime
 
@@ -21,13 +21,18 @@ class ContactResponse(ContactModel):
 
 
 class UserModel(BaseModel):
-    username: str = Field(min_length=2, max_length=150)
+    username: str = Field(min_length=2, max_length=254)
     email: EmailStr
-    password: str = Field(min_length=8, max_length=32)
+    password: str = Field(min_length=8, max_length=72)
+
+
+class UserReducedModel(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=72)
 
 
 class UserDb(BaseModel):
-    id: int
+    id: UUID4
     username: str
     email: EmailStr
     created_at: datetime

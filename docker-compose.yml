@@ -1,9 +1,5 @@
-version: '3'
+version: "4"
 services:
-  redis:
-    image: redis
-    ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
   postgres:
     image: postgres
     environment:
@@ -14,3 +10,7 @@ services:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - ./.postgres-data:/var/lib/postgresql/data
+  redis:
+    image: redis
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"

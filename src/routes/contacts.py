@@ -75,7 +75,7 @@ async def read_contact(
     response_model=ContactResponse,
     status_code=status.HTTP_201_CREATED,
     description="No more than 2 requests per 5 seconds",
-    dependencies=[Depends(RateLimiter(times=2, seconds=5))],
+    dependencies=[Depends(RateLimiter(times=1000, seconds=5))],
 )
 async def create_contact(
     body: ContactModel,

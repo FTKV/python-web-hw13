@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from src.database.connect_db import get_session
 from src.schemas import (
     UserModel,
+    UserReducedModel,
     UserResponse,
     TokenModel,
     TokenPasswordResetConfirmationModel,
@@ -71,7 +72,8 @@ async def signup(
     dependencies=[Depends(RateLimiter(times=1, seconds=1))],
 )
 async def login(
-    body: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)
+    body: OAuth2PasswordRequestForm = Depends(),
+    session: Session = Depends(get_session),
 ):
     user = await repository_users.get_user_by_email(body.username, session)
     if user is None:
@@ -149,9 +151,10 @@ async def request_verification_email(
     if user:
         if user.is_email_confirmed:
             return {"message": "Your email is already confirmed"}
-        background_tasks.add_task(
-            send_email_for_verification, user.email, user.username, request.base_url
-        )
+        if user.is_password_valid:
+            background_tasks.add_task(
+                send_email_for_verification, user.email, user.username, request.base_url
+            )
     return {"message": "Check your email for confirmation"}
 
 
@@ -161,16 +164,19 @@ async def request_verification_email(
     dependencies=[Depends(RateLimiter(times=1, seconds=1))],
 )
 async def confirm_email(token: str, session: Session = Depends(get_session)):
+    verification_exception = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="Verification error"
+    )
     email = await auth_service.decode_email_verification_token(token)
     user = await repository_users.get_user_by_email(email, session)
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Verification error"
-        )
+        raise verification_exception
     if user.is_email_confirmed:
         return {"message": "Your email is already confirmed"}
-    await repository_users.confirm_email(email, session)
-    return {"message": "Email confirmed"}
+    if user.is_password_valid:
+        await repository_users.confirm_email(email, session)
+        return {"message": "Email confirmed"}
+    raise verification_exception
 
 
 @router.post(
@@ -186,10 +192,15 @@ async def request_password_reset_email(
 ):
     user = await repository_users.get_user_by_email(body.email, session)
     if user:
-        await repository_users.invalidate_password(body.email, session)
-        background_tasks.add_task(
-            send_email_for_password_reset, user.email, user.username, request.base_url
-        )
+        if user.is_email_confirmed:
+            if user.is_password_valid:
+                await repository_users.invalidate_password(body.email, session)
+            background_tasks.add_task(
+                send_email_for_password_reset,
+                user.email,
+                user.username,
+                request.base_url,
+            )
     return {"message": "Check your email for password reset"}
 
 
@@ -203,14 +214,15 @@ async def reset_password(
     token: str,
     session: Session = Depends(get_session),
 ):
+    password_reset_exception = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="Password reset error"
+    )
     email = await auth_service.decode_password_reset_token(token)
     user = await repository_users.get_user_by_email(email, session)
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Password reset error"
-        )
-    if user.is_password_valid:
-        return {"message": "Your password is valid"}
+        raise password_reset_exception
+    if not user.is_email_confirmed or user.is_password_valid:
+        raise password_reset_exception
     password_reset_confirmation_token = (
         await auth_service.create_password_reset_confirmation_token(data={"sub": email})
     )
@@ -224,18 +236,19 @@ async def reset_password(
 )
 async def reset_password_confirmation(
     token: str,
-    body: UserModel,
+    body: UserReducedModel,
     session: Session = Depends(get_session),
 ):
+    password_reset_confirmation_exception = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Password reset confirmation error",
+    )
     email = await auth_service.decode_password_reset_confirmation_token(token)
     user = await repository_users.get_user_by_email(email, session)
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password reset confirmation error",
-        )
-    if user.is_password_valid:
-        return {"message": "Your password is valid"}
+        raise password_reset_confirmation_exception
+    if not user.is_email_confirmed or user.is_password_valid:
+        raise password_reset_confirmation_exception
     body.password = auth_service.get_password_hash(body.password)
     await repository_users.reset_password(body, session)
     return {"message": "Password has been reset"}
