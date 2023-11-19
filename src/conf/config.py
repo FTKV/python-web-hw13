@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     mail_password: str
     mail_from: str
     mail_from_name: str
-    cloudinary_name: str
+    cloudinary_cloud_name: str
     cloudinary_api_key: str
     cloudinary_api_secret: str
 

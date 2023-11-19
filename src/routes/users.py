@@ -16,7 +16,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get(
-    "/me/",
+    "/me",
     response_model=UserDb,
     description="No more than 1 request per second",
     dependencies=[Depends(RateLimiter(times=1, seconds=1))],
@@ -37,17 +37,17 @@ async def update_avatar_user(
     session: Session = Depends(get_session),
 ):
     cloudinary.config(
-        cloud_name=settings.cloudinary_name,
+        cloud_name=settings.cloudinary_cloud_name,
         api_key=settings.cloudinary_api_key,
         api_secret=settings.cloudinary_api_secret,
         secure=True,
     )
 
     r = cloudinary.uploader.upload(
-        file.file, public_id=f"ContactsApp/{current_user.username}", overwrite=True
+        file.file, public_id=f"ContactsAPI/{current_user.username}", overwrite=True
     )
     src_url = cloudinary.CloudinaryImage(
-        f"ContactsApp/{current_user.username}"
+        f"ContactsAPI/{current_user.username}"
     ).build_url(width=250, height=250, crop="fill", version=r.get("version"))
     user = await repository_users.update_avatar(current_user.email, src_url, session)
     return user
