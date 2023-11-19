@@ -18,8 +18,8 @@ async def create_user(body: UserModel, session: Session) -> User:
         g = Gravatar(body.email)
         avatar = g.get_image()
     except Exception as e:
-        print(e)
-    user = User(**body.dict(), avatar=avatar)
+        pass
+    user = User(**body.model_dump(), avatar=avatar)
     session.add(user)
     await session.commit()
     await session.refresh(user)

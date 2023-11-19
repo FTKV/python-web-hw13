@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, status
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.orm import Session
 import cloudinary
@@ -42,12 +42,17 @@ async def update_avatar(
         api_secret=settings.cloudinary_api_secret,
         secure=True,
     )
-
-    r = cloudinary.uploader.upload(
-        file.file, public_id=f"ContactsAPI/{current_user.username}", overwrite=True
-    )
-    src_url = cloudinary.CloudinaryImage(
-        f"ContactsAPI/{current_user.username}"
-    ).build_url(width=250, height=250, crop="fill", version=r.get("version"))
+    try:
+        r = cloudinary.uploader.upload(
+            file.file, public_id=f"ContactsAPI/{current_user.username}", overwrite=True
+        )
+        src_url = cloudinary.CloudinaryImage(
+            f"ContactsAPI/{current_user.username}"
+        ).build_url(width=250, height=250, crop="fill", version=r.get("version"))
+    except Exception as error_message:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Upload image error: {str(error_message)}",
+        )
     user = await repository_users.update_avatar(current_user.email, src_url, session)
     return user

@@ -1,3 +1,4 @@
+from pydantic import UUID4
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Path, status
@@ -58,14 +59,14 @@ async def read_contacts_with_birthdays_in_n_days(
     dependencies=[Depends(RateLimiter(times=1, seconds=1))],
 )
 async def read_contact(
-    contact_id: int,
+    contact_id: UUID4,
     user: User = Depends(auth_service.get_current_user),
     session: AsyncDBSession = Depends(get_session),
 ):
     contact = await repository_contacts.read_contact(contact_id, user, session)
     if contact is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="The contact not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
         )
     return contact
 
@@ -82,18 +83,23 @@ async def create_contact(
     user: User = Depends(auth_service.get_current_user),
     session: AsyncDBSession = Depends(get_session),
 ):
-    return await repository_contacts.create_contact(body, user, session)
+    contact = await repository_contacts.create_contact(body, user, session)
+    if contact is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="The contact's email and/or phone already exist",
+        )
+    return contact
 
 
 @router.put(
     "/{contact_id}",
     response_model=ContactResponse,
-    status_code=status.HTTP_201_CREATED,
     description="No more than 2 requests per 5 seconds",
     dependencies=[Depends(RateLimiter(times=2, seconds=5))],
 )
 async def update_contact(
-    contact_id: int,
+    contact_id: UUID4,
     body: ContactModel,
     user: User = Depends(auth_service.get_current_user),
     session: AsyncDBSession = Depends(get_session),
@@ -101,7 +107,7 @@ async def update_contact(
     contact = await repository_contacts.update_contact(contact_id, body, user, session)
     if contact is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="The contact not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
         )
     return contact
 
@@ -109,18 +115,17 @@ async def update_contact(
 @router.delete(
     "/{contact_id}",
     response_model=ContactResponse,
-    status_code=status.HTTP_201_CREATED,
     description="No more than 2 requests per 5 seconds",
     dependencies=[Depends(RateLimiter(times=2, seconds=5))],
 )
 async def delete_contact(
-    contact_id: int,
+    contact_id: UUID4,
     user: User = Depends(auth_service.get_current_user),
     session: AsyncDBSession = Depends(get_session),
 ):
     contact = await repository_contacts.delete_contact(contact_id, user, session)
     if contact is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="The contact not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
         )
     return contact

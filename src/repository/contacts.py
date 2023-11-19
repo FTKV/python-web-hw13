@@ -89,10 +89,13 @@ async def read_contact(
 async def create_contact(
     body: ContactModel, user: User, session: AsyncDBSession
 ) -> Contact:
-    contact = Contact(**body.dict(), user_id=user.id)
-    session.add(contact)
-    await session.commit()
-    await session.refresh(contact)
+    try:
+        contact = Contact(**body.model_dump(), user_id=user.id)
+        session.add(contact)
+        await session.commit()
+        await session.refresh(contact)
+    except Exception as e:
+        return None
     return contact
 
 

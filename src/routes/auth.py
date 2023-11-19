@@ -52,7 +52,7 @@ async def signup(
     exist_user = await repository_users.get_user_by_email(body.email, session)
     if exist_user:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Account already exists"
+            status_code=status.HTTP_409_CONFLICT, detail="The account already exists"
         )
     body.password = auth_service.get_password_hash(body.password)
     new_user = await repository_users.create_user(body, session)
@@ -61,7 +61,7 @@ async def signup(
     )
     return {
         "user": new_user,
-        "detail": "User successfully created. Check your email for confirmation.",
+        "detail": "The user successfully created. Check your email for confirmation",
     }
 
 
@@ -82,7 +82,8 @@ async def login(
         )
     if not user.is_email_confirmed:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Email is not confirmed"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="The email is not confirmed",
         )
     if not user.is_password_valid:
         raise HTTPException(
@@ -150,7 +151,7 @@ async def request_verification_email(
     user = await repository_users.get_user_by_email(body.email, session)
     if user:
         if user.is_email_confirmed:
-            return {"message": "Your email is already confirmed"}
+            return {"message": "The email is already confirmed"}
         if user.is_password_valid:
             background_tasks.add_task(
                 send_email_for_verification, user.email, user.username, request.base_url
@@ -172,7 +173,7 @@ async def confirm_email(token: str, session: Session = Depends(get_session)):
     if user is None:
         raise verification_exception
     if user.is_email_confirmed:
-        return {"message": "Your email is already confirmed"}
+        return {"message": "The email is already confirmed"}
     if user.is_password_valid:
         await repository_users.confirm_email(email, session)
         return {"message": "Email confirmed"}
@@ -201,7 +202,7 @@ async def request_password_reset_email(
                 user.username,
                 request.base_url,
             )
-    return {"message": "Check your email for password reset"}
+    return {"message": "Check your email for a password reset"}
 
 
 @router.get(
@@ -249,6 +250,8 @@ async def reset_password_confirmation(
         raise password_reset_confirmation_exception
     if not user.is_email_confirmed or user.is_password_valid:
         raise password_reset_confirmation_exception
+    if user.email != body.email:
+        raise password_reset_confirmation_exception
     body.password = auth_service.get_password_hash(body.password)
     await repository_users.reset_password(body, session)
-    return {"message": "Password has been reset"}
+    return {"message": "The password has been reset"}

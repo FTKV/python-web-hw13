@@ -1,6 +1,6 @@
 from datetime import datetime, date
 
-from sqlalchemy import UUID, ForeignKey, String, DateTime, Date, Boolean, text, func
+from sqlalchemy import UUID, ForeignKey, String, DateTime, Date, Boolean, UniqueConstraint, text, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
 
@@ -15,8 +15,8 @@ class Contact(Base):
     )
     first_name: Mapped[str] = mapped_column(String(254), nullable=False)
     last_name: Mapped[str] = mapped_column(String(254), nullable=False)
-    email: Mapped[str] = mapped_column(String(254), nullable=True, unique=True)
-    phone: Mapped[str] = mapped_column(String(38), nullable=True, unique=True)
+    email: Mapped[str] = mapped_column(String(254), nullable=True)
+    phone: Mapped[str] = mapped_column(String(38), nullable=True)
     birthday: Mapped[date] = mapped_column(Date())
     address: Mapped[str] = mapped_column(String(254), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -29,6 +29,7 @@ class Contact(Base):
         UUID(as_uuid=True), ForeignKey("users.id", onupdate="CASCADE")
     )
     user: Mapped["User"] = relationship("User", back_populates="contacts")
+    __table_args__ = (UniqueConstraint("user_id", "email", name="uix_email"), UniqueConstraint("user_id", "phone", name="uix_phone"))
 
     @hybrid_property
     def full_name(self):

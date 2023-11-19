@@ -16,7 +16,7 @@ import faker
 from conf.config import settings
 
 
-ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtdGhrdnZAZ21haWwuY29tIiwiaWF0IjoxNzAwMzg3MDc1LCJleHAiOjE3MDAzODc5NzUsInNjb3BlIjoiYWNjZXNzX3Rva2VuIn0._3pMtmX6mV5a6Rmt-DTEjbD18A9w2pHmBSljS36BoyQ"
+ACCESS_TOKEN = ""
 
 NUMBER_CONTACTS = 1000
 
