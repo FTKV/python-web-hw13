@@ -1,9 +1,19 @@
+import sys
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+# https://stackoverflow.com/questions/16981921/relative-imports-in-python-3/16985066#16985066
+
 import asyncio
 import json
 import platform
 
 import aiohttp
 import faker
+
+from conf.config import settings
 
 
 ACCESS_TOKEN = ""
@@ -43,7 +53,7 @@ async def send_data_to_api() -> None:
         }
         try:
             await session.post(
-                "http://127.0.0.1:8000/api/contacts",
+                f"http://{settings.api_host}:{settings.api_port}/api/contacts",
                 headers=headers,
                 data=json.dumps(data),
             )
