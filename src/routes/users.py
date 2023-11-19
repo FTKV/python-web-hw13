@@ -21,7 +21,7 @@ router = APIRouter(prefix="/users", tags=["users"])
     description="No more than 1 request per second",
     dependencies=[Depends(RateLimiter(times=1, seconds=1))],
 )
-async def read_users_me(current_user: User = Depends(auth_service.get_current_user)):
+async def read_me(current_user: User = Depends(auth_service.get_current_user)):
     return current_user
 
 
@@ -31,7 +31,7 @@ async def read_users_me(current_user: User = Depends(auth_service.get_current_us
     description="No more than 2 requests per 5 seconds",
     dependencies=[Depends(RateLimiter(times=2, seconds=5))],
 )
-async def update_avatar_user(
+async def update_avatar(
     file: UploadFile = File(),
     current_user: User = Depends(auth_service.get_current_user),
     session: Session = Depends(get_session),
