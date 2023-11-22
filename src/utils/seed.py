@@ -18,13 +18,13 @@ from conf.config import settings
 
 ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtdGhrdnZAZ21haWwuY29tIiwiaWF0IjoxNzAwNjIyNDA2LCJleHAiOjE3MDA2MjMzMDYsInNjb3BlIjoiYWNjZXNzX3Rva2VuIn0.ICU-lXPVJT4J3-0c6fo0WwTDyfK53orR9KrPHT4e7Fs"
 
-NUMBER_CONTACTS = 1000
+NUMBER_OF_CONTACTS = 1000
 
 fake_data = faker.Faker("uk_UA")
 
 
 async def get_fake_contacts():
-    for _ in range(NUMBER_CONTACTS):
+    for _ in range(NUMBER_OF_CONTACTS):
         yield {
             "first_name": fake_data.first_name(),
             "last_name": fake_data.last_name(),

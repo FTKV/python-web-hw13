@@ -105,4 +105,4 @@ CLOUDINARY_API_SECRET=...
 
 Щоб записати таблицю в БД, можно обійтись без алембіка, запустивши src/database/create_all.py
 
-Щоб заповнити базу фейковими контактами, змініть тимчасово у .env параметр RATE_LIMITER_TIMES на значення, що відповідає NUMBER_CONTACTS у src/utils/seed.py, щоб пом’якшити обмеження Ratelimiter, зареєструйтесь через Swagger або Postman, скопіюйте access_token у src/utils/seed.py, та запустіть.
+Щоб заповнити базу фейковими контактами, змініть тимчасово у .env параметр RATE_LIMITER_TIMES на значення, що відповідає NUMBER_OF_CONTACTS у src/utils/seed.py, щоб пом’якшити обмеження Ratelimiter, зареєструйтесь через Swagger або Postman, скопіюйте access_token у src/utils/seed.py, та запустіть.

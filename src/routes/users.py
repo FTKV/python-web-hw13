@@ -31,14 +31,15 @@ async def update_avatar(
         api_secret=settings.cloudinary_api_secret,
         secure=True,
     )
+    api_name = settings.api_name.replace(" ", "_")
     try:
         r = cloudinary.uploader.upload(
             file.file,
-            public_id=f"{settings.api_name}/{current_user.username}",
+            public_id=f"{api_name}/{current_user.username}",
             overwrite=True,
         )
         src_url = cloudinary.CloudinaryImage(
-            f"{settings.api_name}/{current_user.username}"
+            f"{api_name}/{current_user.username}"
         ).build_url(width=250, height=250, crop="fill", version=r.get("version"))
     except Exception as error_message:
         raise HTTPException(

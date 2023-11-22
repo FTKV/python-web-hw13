@@ -28,7 +28,7 @@ async def read_contacts(
     )
 
 
-@router.get("/birthdays-in-{n}-days", response_model=List[ContactResponse])
+@router.get("/birthdays_in_{n}_days", response_model=List[ContactResponse])
 async def read_contacts_with_birthdays_in_n_days(
     n: int = Path(ge=1, le=31),
     offset: int = Query(default=0, ge=0),

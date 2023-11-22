@@ -42,25 +42,37 @@ async def read_contacts_with_birthdays_in_n_days(
     contacts = await session.execute(stmt)
     contacts = contacts.scalars()
     tmp = defaultdict(list)
+    tmp_leap_day = defaultdict(list)
     today_date = date.today()
     is_leap_year_flag = is_leap_year(today_date.year)
-    number_of_days_in_year = 365 + is_leap_year_flag
+    number_of_days_in_the_year = 365 + is_leap_year_flag
     last_date = today_date + timedelta(days=n - 1)
     is_includes_next_year_flag = bool(last_date.year - today_date.year)
     for contact in contacts:
         birthday = contact.birthday
         if not is_leap_year_flag and birthday.month == 2 and birthday.day == 29:
             date_delta = date(year=today_date.year, month=3, day=1) - today_date
+            is_leap_day = True
         else:
             date_delta = birthday.replace(year=today_date.year) - today_date
+            is_leap_day = False
         delta_days = date_delta.days
-        if is_includes_next_year_flag and delta_days < n - number_of_days_in_year:
-            delta_days += number_of_days_in_year
+        if is_includes_next_year_flag and delta_days < n - number_of_days_in_the_year:
+            delta_days += number_of_days_in_the_year
         if 0 <= delta_days < n:
-            tmp[delta_days].append(contact)
+            if is_leap_day:
+                tmp_leap_day[delta_days].append(contact)
+            else:
+                tmp[delta_days].append(contact)
+    if tmp_leap_day and tmp:
+        for delta_days in range(n):
+            if tmp_leap_day.get(delta_days):
+                tmp[delta_days] = tmp_leap_day[delta_days] + tmp[delta_days]
     result = []
-    for delta_days in range(n):
-        result = result + tmp[delta_days]
+    if tmp:
+        for delta_days in range(n):
+            if tmp.get(delta_days):
+                result = result + tmp[delta_days]
     return result[offset : offset + limit]
 
 

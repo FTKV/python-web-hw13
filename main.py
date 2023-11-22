@@ -80,7 +80,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse("static/favicon.ico")
+    return FileResponse("static/images/favicon.ico")
 
 
 @app.get(
@@ -111,7 +111,7 @@ async def read_root():
 )
 async def healthchecker(session: AsyncDBSession = Depends(get_session)):
     try:
-        stmt = select(text("1"))
+        stmt = select(text("0"))
         result = await session.execute(stmt)
         result = result.scalar()
         if result is None:
