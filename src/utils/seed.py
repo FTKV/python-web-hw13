@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
@@ -16,24 +16,23 @@ import faker
 from conf.config import settings
 
 
-ACCESS_TOKEN = ""
+ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtdGhrdnZAZ21haWwuY29tIiwiaWF0IjoxNzAwNjIyNDA2LCJleHAiOjE3MDA2MjMzMDYsInNjb3BlIjoiYWNjZXNzX3Rva2VuIn0.ICU-lXPVJT4J3-0c6fo0WwTDyfK53orR9KrPHT4e7Fs"
 
 NUMBER_CONTACTS = 1000
-
 
 fake_data = faker.Faker("uk_UA")
 
 
 async def get_fake_contacts():
     for _ in range(NUMBER_CONTACTS):
-        yield (lambda x: [x[1], x[2]] if len(x) == 3 else [x[0], x[1]])(
-            fake_data.name().split(" ")
-        ) + [
-            fake_data.email(),
-            fake_data.phone_number(),
-            fake_data.date(),
-            fake_data.address(),
-        ]
+        yield {
+            "first_name": fake_data.first_name(),
+            "last_name": fake_data.last_name(),
+            "email": fake_data.email(),
+            "phone": fake_data.phone_number(),
+            "birthday": fake_data.date(),
+            "address": fake_data.address(),
+        }
 
 
 async def send_data_to_api() -> None:
@@ -42,23 +41,15 @@ async def send_data_to_api() -> None:
         "Authorization": f"Bearer {ACCESS_TOKEN}",
     }
     session = aiohttp.ClientSession()
-    async for first_name, last_name, email, phone, birthday, address in get_fake_contacts():
-        data = {
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "phone": phone,
-            "birthday": birthday,
-            "address": address,
-        }
+    async for data in get_fake_contacts():
         try:
             await session.post(
                 f"http://{settings.api_host}:{settings.api_port}/api/contacts",
                 headers=headers,
                 data=json.dumps(data),
             )
-        except aiohttp.ClientOSError as err:
-            print(f"Connection error: {str(err)}")
+        except aiohttp.ClientOSError as error_message:
+            print(f"Connection error: {str(error_message)}")
     await session.close()
     print("Done")
 

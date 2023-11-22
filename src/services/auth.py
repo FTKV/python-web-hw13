@@ -1,12 +1,10 @@
 from datetime import datetime, timedelta
-import pickle
 from typing import Optional
 
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-import redis.asyncio as redis
 from sqlalchemy.orm import Session
 
 from src.conf.config import settings
@@ -19,13 +17,6 @@ class Auth:
     SECRET_KEY = settings.secret_key
     ALGORITHM = settings.algorithm
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
-    r = redis.Redis(
-        host=settings.redis_host,
-        port=settings.redis_port,
-        db=1,
-        encoding="utf-8",
-        decode_responses=False,
-    )
 
     def verify_password(self, plain_password, hashed_password):
         return self.pwd_context.verify(plain_password, hashed_password)
@@ -145,7 +136,7 @@ class Auth:
                 if email is None:
                     raise credentials_exception
                 return email
-        except JWTError as e:
+        except JWTError:
             raise credentials_exception
 
     async def decode_password_reset_token(self, token: str):
@@ -160,7 +151,7 @@ class Auth:
                 if email is None:
                     raise credentials_exception
                 return email
-        except JWTError as e:
+        except JWTError:
             raise credentials_exception
 
     async def decode_password_reset_confirmation_token(self, token: str):
@@ -175,7 +166,7 @@ class Auth:
                 if email is None:
                     raise credentials_exception
                 return email
-        except JWTError as e:
+        except JWTError:
             raise credentials_exception
 
     async def get_current_user(
@@ -198,17 +189,14 @@ class Auth:
                     raise credentials_exception
             else:
                 raise credentials_exception
-        except JWTError as e:
+        except JWTError:
             raise credentials_exception
-        user = await self.r.get(f"user:{email}")
+        user = await repository_users.get_user_by_email_from_cache(email)
         if user is None:
             user = await repository_users.get_user_by_email(email, session)
             if user is None:
                 raise credentials_exception
-            await self.r.set(f"user:{email}", pickle.dumps(user))
-            await self.r.expire(f"user:{email}", 3600)
-        else:
-            user = pickle.loads(user)
+            await repository_users.set_user_in_cache(user)
         return user
 
 

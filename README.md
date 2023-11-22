@@ -69,6 +69,7 @@ config.set_main_option("sqlalchemy.url", settings.sqlalchemy_database_url_sync)
 В корені проекту необхідно створити налаштувати файл .env у такому форматі:
 
 ```
+API_NAME=...
 API_HOST=127.0.0.1
 API_PORT=8000
 

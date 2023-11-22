@@ -1,12 +1,12 @@
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, date, timedelta, timezone
 from typing import List
 
 from sqlalchemy import select, and_
 
 from src.database.connect_db import AsyncDBSession
 from src.database.models import Contact, User
-from src.schemas import ContactModel
+from src.schemas.contacts import ContactModel
 from src.utils.is_leap_year import is_leap_year
 
 
@@ -41,38 +41,25 @@ async def read_contacts_with_birthdays_in_n_days(
     stmt = select(Contact).filter(Contact.user_id == user.id)
     contacts = await session.execute(stmt)
     contacts = contacts.scalars()
-    current_date = datetime.now().date()
     tmp = defaultdict(list)
-    is_leap_year_flag = is_leap_year(current_date.year)
+    today_date = date.today()
+    is_leap_year_flag = is_leap_year(today_date.year)
+    last_date = today_date + timedelta(days=n - 1)
+    is_includes_next_year_flag = bool(last_date.year - today_date.year)
     for contact in contacts:
-        date_of_birth = contact.birthday
-        if (
-            not is_leap_year_flag
-            and date_of_birth.month == 2
-            and date_of_birth.day == 29
-        ):
-            date_delta = (
-                datetime(year=current_date.year, month=3, day=1).date() - current_date
-            )
+        birthday = contact.birthday
+        if not is_leap_year_flag and birthday.month == 2 and birthday.day == 29:
+            date_delta = date(year=today_date.year, month=3, day=1) - today_date
         else:
-            date_delta = (
-                datetime(
-                    year=current_date.year,
-                    month=date_of_birth.month,
-                    day=date_of_birth.day,
-                ).date()
-                - current_date
-            )
+            date_delta = birthday.replace(year=today_date.year) - today_date
         delta_days = date_delta.days
-        if delta_days < n - 365:
+        if is_includes_next_year_flag and delta_days < n - 365:
             delta_days += 365 + is_leap_year_flag
-        if delta_days in range(n):
+        if 0 <= delta_days < n:
             tmp[delta_days].append(contact)
-
     result = []
     for delta_days in range(n):
         result = result + tmp[delta_days]
-
     return result[offset : offset + limit]
 
 
@@ -94,7 +81,7 @@ async def create_contact(
         session.add(contact)
         await session.commit()
         await session.refresh(contact)
-    except Exception as e:
+    except Exception:
         return None
     return contact
 
@@ -114,7 +101,7 @@ async def update_contact(
         contact.phone = body.phone
         contact.birthday = body.birthday
         contact.address = body.address
-        contact.updated_at = datetime.now()
+        contact.updated_at = datetime.now(timezone.utc)
         await session.commit()
     return contact
 

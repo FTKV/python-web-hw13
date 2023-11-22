@@ -2,24 +2,18 @@ from pydantic import UUID4
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Path, status
-from fastapi_limiter.depends import RateLimiter
 
 from src.database.connect_db import AsyncDBSession, get_session
 from src.database.models import User
 from src.repository import contacts as repository_contacts
-from src.schemas import ContactModel, ContactResponse
+from src.schemas.contacts import ContactModel, ContactResponse
 from src.services.auth import auth_service
 
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
 
-@router.get(
-    "/",
-    response_model=List[ContactResponse],
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
-)
+@router.get("/", response_model=List[ContactResponse])
 async def read_contacts(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=1000),
@@ -34,14 +28,9 @@ async def read_contacts(
     )
 
 
-@router.get(
-    "/birthdays-in-{n}-days",
-    response_model=List[ContactResponse],
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
-)
+@router.get("/birthdays-in-{n}-days", response_model=List[ContactResponse])
 async def read_contacts_with_birthdays_in_n_days(
-    n: int = Path(ge=1, le=62),
+    n: int = Path(ge=1, le=31),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=1000),
     user: User = Depends(auth_service.get_current_user),
@@ -52,12 +41,7 @@ async def read_contacts_with_birthdays_in_n_days(
     )
 
 
-@router.get(
-    "/{contact_id}",
-    response_model=ContactResponse,
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
-)
+@router.get("/{contact_id}", response_model=ContactResponse)
 async def read_contact(
     contact_id: UUID4,
     user: User = Depends(auth_service.get_current_user),
@@ -71,13 +55,7 @@ async def read_contact(
     return contact
 
 
-@router.post(
-    "/",
-    response_model=ContactResponse,
-    status_code=status.HTTP_201_CREATED,
-    description="No more than 2 requests per 5 seconds",
-    dependencies=[Depends(RateLimiter(times=2, seconds=5))],
-)
+@router.post("/", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
 async def create_contact(
     body: ContactModel,
     user: User = Depends(auth_service.get_current_user),
@@ -92,12 +70,7 @@ async def create_contact(
     return contact
 
 
-@router.put(
-    "/{contact_id}",
-    response_model=ContactResponse,
-    description="No more than 2 requests per 5 seconds",
-    dependencies=[Depends(RateLimiter(times=2, seconds=5))],
-)
+@router.put("/{contact_id}", response_model=ContactResponse)
 async def update_contact(
     contact_id: UUID4,
     body: ContactModel,
@@ -112,12 +85,7 @@ async def update_contact(
     return contact
 
 
-@router.delete(
-    "/{contact_id}",
-    response_model=ContactResponse,
-    description="No more than 2 requests per 5 seconds",
-    dependencies=[Depends(RateLimiter(times=2, seconds=5))],
-)
+@router.delete("/{contact_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_contact(
     contact_id: UUID4,
     user: User = Depends(auth_service.get_current_user),
@@ -128,4 +96,4 @@ async def delete_contact(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
         )
-    return contact
+    return None

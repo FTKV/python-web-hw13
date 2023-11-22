@@ -1,8 +1,18 @@
 from datetime import datetime, date
 
-from sqlalchemy import UUID, ForeignKey, String, DateTime, Date, Boolean, UniqueConstraint, text, func
+from sqlalchemy import (
+    UUID,
+    ForeignKey,
+    String,
+    DateTime,
+    Date,
+    Boolean,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
 
 
 Base = declarative_base()
@@ -10,6 +20,10 @@ Base = declarative_base()
 
 class Contact(Base):
     __tablename__ = "contacts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "email", name="uix_email"),
+        UniqueConstraint("user_id", "phone", name="uix_phone"),
+    )
     id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=text("gen_random_uuid()")
     )
@@ -29,7 +43,6 @@ class Contact(Base):
         UUID(as_uuid=True), ForeignKey("users.id", onupdate="CASCADE")
     )
     user: Mapped["User"] = relationship("User", back_populates="contacts")
-    __table_args__ = (UniqueConstraint("user_id", "email", name="uix_email"), UniqueConstraint("user_id", "phone", name="uix_phone"))
 
     @hybrid_property
     def full_name(self):
@@ -45,6 +58,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(254), nullable=False, unique=True)
     password: Mapped[str] = mapped_column(String(60), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
     avatar: Mapped[str] = mapped_column(String(254), nullable=True)

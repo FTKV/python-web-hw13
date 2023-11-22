@@ -4,8 +4,8 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from fastapi_mail.errors import ConnectionErrors
 from pydantic import EmailStr
 
-from src.services.auth import auth_service
 from src.conf.config import settings
+from src.services.auth import auth_service
 
 
 conf = ConnectionConfig(
@@ -39,7 +39,7 @@ async def send_email_for_verification(email: EmailStr, username: str, host: str)
 
         fm = FastMail(conf)
         await fm.send_message(message, template_name="verification_email.html")
-    except ConnectionErrors as e:
+    except ConnectionErrors:
         pass
 
 
@@ -59,5 +59,5 @@ async def send_email_for_password_reset(email: EmailStr, username: str, host: st
 
         fm = FastMail(conf)
         await fm.send_message(message, template_name="password_reset_email.html")
-    except ConnectionErrors as e:
+    except ConnectionErrors:
         pass

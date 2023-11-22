@@ -12,18 +12,16 @@ from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
 )
-from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.orm import Session
 
 from src.database.connect_db import get_session
-from src.schemas import (
+from src.schemas.users import (
     UserModel,
-    UserReducedModel,
+    UserRequestEmail,
+    UserPasswordResetConfirmationModel,
     UserResponse,
-    TokenModel,
-    TokenPasswordResetConfirmationModel,
-    RequestEmail,
 )
+from src.schemas.tokens import TokenModel, TokenPasswordResetConfirmationModel
 from src.repository import users as repository_users
 from src.services.auth import auth_service
 from src.services.email import (
@@ -37,11 +35,7 @@ security = HTTPBearer()
 
 
 @router.post(
-    "/signup",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-    description="No more than 2 requests per 5 seconds",
-    dependencies=[Depends(RateLimiter(times=2, seconds=5))],
+    "/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
 async def signup(
     body: UserModel,
@@ -49,28 +43,23 @@ async def signup(
     request: Request,
     session: Session = Depends(get_session),
 ):
-    exist_user = await repository_users.get_user_by_email(body.email, session)
-    if exist_user:
+    user = await repository_users.get_user_by_email(body.email, session)
+    if user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="The account already exists"
         )
     body.password = auth_service.get_password_hash(body.password)
-    new_user = await repository_users.create_user(body, session)
+    user = await repository_users.create_user(body, session)
     background_tasks.add_task(
-        send_email_for_verification, new_user.email, new_user.username, request.base_url
+        send_email_for_verification, user.email, user.username, request.base_url
     )
     return {
-        "user": new_user,
+        "user": user,
         "detail": "The user successfully created. Check your email for confirmation",
     }
 
 
-@router.post(
-    "/login",
-    response_model=TokenModel,
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
-)
+@router.post("/login", response_model=TokenModel)
 async def login(
     body: OAuth2PasswordRequestForm = Depends(),
     session: Session = Depends(get_session),
@@ -105,12 +94,7 @@ async def login(
     }
 
 
-@router.get(
-    "/refresh-token",
-    response_model=TokenModel,
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
-)
+@router.get("/refresh-token", response_model=TokenModel)
 async def refresh_token(
     credentials: HTTPAuthorizationCredentials = Security(security),
     session: Session = Depends(get_session),
@@ -137,13 +121,9 @@ async def refresh_token(
     }
 
 
-@router.post(
-    "/request-verification-email",
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
-)
+@router.post("/request-verification-email")
 async def request_verification_email(
-    body: RequestEmail,
+    body: UserRequestEmail,
     background_tasks: BackgroundTasks,
     request: Request,
     session: Session = Depends(get_session),
@@ -159,11 +139,7 @@ async def request_verification_email(
     return {"message": "Check your email for confirmation"}
 
 
-@router.get(
-    "/confirm-email/{token}",
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
-)
+@router.get("/confirm-email/{token}")
 async def confirm_email(token: str, session: Session = Depends(get_session)):
     verification_exception = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Verification error"
@@ -180,13 +156,9 @@ async def confirm_email(token: str, session: Session = Depends(get_session)):
     raise verification_exception
 
 
-@router.post(
-    "/request-password-reset-email",
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
-)
+@router.post("/request-password-reset-email")
 async def request_password_reset_email(
-    body: RequestEmail,
+    body: UserRequestEmail,
     background_tasks: BackgroundTasks,
     request: Request,
     session: Session = Depends(get_session),
@@ -206,10 +178,7 @@ async def request_password_reset_email(
 
 
 @router.get(
-    "/reset-password/{token}",
-    response_model=TokenPasswordResetConfirmationModel,
-    description="No more than 1 request per second",
-    dependencies=[Depends(RateLimiter(times=1, seconds=1))],
+    "/reset-password/{token}", response_model=TokenPasswordResetConfirmationModel
 )
 async def reset_password(
     token: str,
@@ -230,14 +199,10 @@ async def reset_password(
     return {"password_reset_confirmation_token": password_reset_confirmation_token}
 
 
-@router.patch(
-    "/reset-password-confirmation/{token}",
-    description="No more than 2 requests per 5 seconds",
-    dependencies=[Depends(RateLimiter(times=2, seconds=5))],
-)
+@router.patch("/reset-password-confirmation/{token}")
 async def reset_password_confirmation(
     token: str,
-    body: UserReducedModel,
+    body: UserPasswordResetConfirmationModel,
     session: Session = Depends(get_session),
 ):
     password_reset_confirmation_exception = HTTPException(
@@ -250,8 +215,6 @@ async def reset_password_confirmation(
         raise password_reset_confirmation_exception
     if not user.is_email_confirmed or user.is_password_valid:
         raise password_reset_confirmation_exception
-    if user.email != body.email:
-        raise password_reset_confirmation_exception
     body.password = auth_service.get_password_hash(body.password)
-    await repository_users.reset_password(body, session)
+    await repository_users.reset_password(email, body.password, session)
     return {"message": "The password has been reset"}

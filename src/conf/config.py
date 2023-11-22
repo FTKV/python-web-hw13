@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    api_name: str
     api_host: str = "localhost"
     api_port: int = 8000
     secret_key: str
@@ -10,6 +11,9 @@ class Settings(BaseSettings):
     sqlalchemy_database_url_async: str
     redis_host: str
     redis_port: int
+    redis_password: str
+    rate_limiter_times: int
+    rate_limiter_seconds: int
     mail_server: str
     mail_port: int
     mail_username: str
