@@ -44,6 +44,7 @@ async def read_contacts_with_birthdays_in_n_days(
     tmp = defaultdict(list)
     today_date = date.today()
     is_leap_year_flag = is_leap_year(today_date.year)
+    number_of_days_in_year = 365 + is_leap_year_flag
     last_date = today_date + timedelta(days=n - 1)
     is_includes_next_year_flag = bool(last_date.year - today_date.year)
     for contact in contacts:
@@ -53,8 +54,8 @@ async def read_contacts_with_birthdays_in_n_days(
         else:
             date_delta = birthday.replace(year=today_date.year) - today_date
         delta_days = date_delta.days
-        if is_includes_next_year_flag and delta_days < n - 365:
-            delta_days += 365 + is_leap_year_flag
+        if is_includes_next_year_flag and delta_days < n - number_of_days_in_year:
+            delta_days += number_of_days_in_year
         if 0 <= delta_days < n:
             tmp[delta_days].append(contact)
     result = []
