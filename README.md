@@ -42,7 +42,7 @@
 
 2. GET-запит на /api/auth/reset-password/{token} (лінк у електронному листі) з токеном скидання паролю. Якщо email присутній в базі та підтверджений, прапор is_password_valid встановлений у False та токен скидання паролю валідний, повертається у відповіді токен підтвердження скидання паролю, який валідний 15 хвилин.
 
-3. PATCH-запит на /api/auth/reset-password-confirmation/{token} з токеном підтвердження скидання паролю у шляху та тілом з полями email та password (яке й буде новим паролем).
+3. PATCH-запит на /api/auth/reset-password-confirmation/{token} з токеном підтвердження скидання паролю у шляху та тілом з полем password (яке й буде новим паролем).
 
 Для запуску необхідно виконати наступні дії:
 
@@ -105,17 +105,4 @@ CLOUDINARY_API_SECRET=...
 
 Щоб записати таблицю в БД, можно обійтись без алембіка, запустивши src/database/create_all.py
 
-Щоб заповнити базу фейковими контактами, змініть тимчасово у src/routes/contacts.py у
-
-```
-@router.post(
-"/",
-response_model=ContactResponse,
-status_code=status.HTTP_201_CREATED,
-description="No more than 2 requests per 5 seconds",
-dependencies=[Depends(RateLimiter(times=2, seconds=5))],
-)
-async def create_contact...
-```
-
-параметр times на наприклад, 1000, щоб пом’якшити обмеження Ratelimiter, зареєструйтесь через Swagger або Postman, скопіюйте access_token у src/utils/seed.py, та запустіть. Потім бажано поверніть значення times на 2.
+Щоб заповнити базу фейковими контактами, змініть тимчасово у .env параметр RATE_LIMITER_TIMES на значення, що відповідає NUMBER_CONTACTS у src/utils/seed.py, щоб пом’якшити обмеження Ratelimiter, зареєструйтесь через Swagger або Postman, скопіюйте access_token у src/utils/seed.py, та запустіть.
