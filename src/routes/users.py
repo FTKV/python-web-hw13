@@ -1,9 +1,8 @@
 import cloudinary
 import cloudinary.uploader
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, status
-from sqlalchemy.orm import Session
 
-from src.database.connect_db import get_session
+from src.database.connect_db import AsyncDBSession, get_session
 from src.database.models import User
 from src.repository import users as repository_users
 from src.services.auth import auth_service
@@ -23,7 +22,7 @@ async def read_me(current_user: User = Depends(auth_service.get_current_user)):
 async def update_avatar(
     file: UploadFile = File(),
     current_user: User = Depends(auth_service.get_current_user),
-    session: Session = Depends(get_session),
+    session: AsyncDBSession = Depends(get_session),
 ):
     cloudinary.config(
         cloud_name=settings.cloudinary_cloud_name,

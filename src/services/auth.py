@@ -5,10 +5,9 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-from sqlalchemy.orm import Session
 
 from src.conf.config import settings
-from src.database.connect_db import get_session
+from src.database.connect_db import AsyncDBSession, get_session
 from src.repository import users as repository_users
 
 
@@ -172,7 +171,7 @@ class Auth:
     async def get_current_user(
         self,
         token: str = Depends(oauth2_scheme),
-        session: Session = Depends(get_session),
+        session: AsyncDBSession = Depends(get_session),
     ):
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

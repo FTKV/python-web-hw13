@@ -12,9 +12,8 @@ from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
 )
-from sqlalchemy.orm import Session
 
-from src.database.connect_db import get_session
+from src.database.connect_db import AsyncDBSession, get_session
 from src.schemas.users import (
     UserModel,
     UserRequestEmail,
@@ -41,7 +40,7 @@ async def signup(
     body: UserModel,
     background_tasks: BackgroundTasks,
     request: Request,
-    session: Session = Depends(get_session),
+    session: AsyncDBSession = Depends(get_session),
 ):
     user = await repository_users.get_user_by_email(body.email, session)
     if user:
@@ -62,7 +61,7 @@ async def signup(
 @router.post("/login", response_model=TokenModel)
 async def login(
     body: OAuth2PasswordRequestForm = Depends(),
-    session: Session = Depends(get_session),
+    session: AsyncDBSession = Depends(get_session),
 ):
     user = await repository_users.get_user_by_email(body.username, session)
     if user is None:
@@ -97,7 +96,7 @@ async def login(
 @router.get("/refresh_token", response_model=TokenModel)
 async def refresh_token(
     credentials: HTTPAuthorizationCredentials = Security(security),
-    session: Session = Depends(get_session),
+    session: AsyncDBSession = Depends(get_session),
 ):
     token = credentials.credentials
     email = await auth_service.decode_refresh_token(token)
@@ -126,7 +125,7 @@ async def request_verification_email(
     body: UserRequestEmail,
     background_tasks: BackgroundTasks,
     request: Request,
-    session: Session = Depends(get_session),
+    session: AsyncDBSession = Depends(get_session),
 ):
     user = await repository_users.get_user_by_email(body.email, session)
     if user:
@@ -140,7 +139,7 @@ async def request_verification_email(
 
 
 @router.get("/confirm_email/{token}")
-async def confirm_email(token: str, session: Session = Depends(get_session)):
+async def confirm_email(token: str, session: AsyncDBSession = Depends(get_session)):
     email = await auth_service.decode_email_verification_token(token)
     user = await repository_users.get_user_by_email(email, session)
     if user is None or not user.is_password_valid:
@@ -158,7 +157,7 @@ async def request_password_reset_email(
     body: UserRequestEmail,
     background_tasks: BackgroundTasks,
     request: Request,
-    session: Session = Depends(get_session),
+    session: AsyncDBSession = Depends(get_session),
 ):
     user = await repository_users.get_user_by_email(body.email, session)
     if user and user.is_email_confirmed:
@@ -176,7 +175,7 @@ async def request_password_reset_email(
 )
 async def reset_password(
     token: str,
-    session: Session = Depends(get_session),
+    session: AsyncDBSession = Depends(get_session),
 ):
     email = await auth_service.decode_password_reset_token(token)
     user = await repository_users.get_user_by_email(email, session)
@@ -196,7 +195,7 @@ async def reset_password(
 async def reset_password_confirmation(
     token: str,
     body: UserPasswordResetConfirmationModel,
-    session: Session = Depends(get_session),
+    session: AsyncDBSession = Depends(get_session),
 ):
     email = await auth_service.decode_password_reset_confirmation_token(token)
     user = await repository_users.get_user_by_email(email, session)
